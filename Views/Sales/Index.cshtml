@@ -1,0 +1,162 @@
+﻿@model IEnumerable<StockMaster.Models.Sale>
+@{
+    ViewData["Title"] = "Sales History";
+    var currentUser = ViewBag.CurrentUser as StockMaster.Models.User;
+    var startDate = ViewBag.StartDate as string;
+    var endDate = ViewBag.EndDate as string;
+}
+
+<div class="row mb-4">
+    <div class="col">
+        <h2><i class="bi bi-clock-history"></i> Sales History</h2>
+    </div>
+    <div class="col-auto">
+        <a asp-action="NewSale" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> New Sale
+        </a>
+    </div>
+</div>
+
+<!-- Date Filter -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" name="startDate" class="form-control" value="@startDate" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">End Date</label>
+                        <input type="date" name="endDate" class="form-control" value="@endDate" />
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="bi bi-funnel"></i> Filter
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="bi bi-arrow-counterclockwise"></i> Reset
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sales Summary -->
+@if (Model != null && Model.Any())
+{
+    var totalSales = Model.Sum(s => s.TotalAmount);
+    var totalTransactions = Model.Count();
+    var averageSale = totalSales / totalTransactions;
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6>Total Transactions</h6>
+                    <h3>@totalTransactions</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6>Total Sales</h6>
+                    <h3>$@totalSales.ToString("N2")</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6>Average Sale</h6>
+                    <h3>$@averageSale.ToString("N2")</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Sales Table -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="salesTable">
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Date & Time</th>
+                                <th>Cashier</th>
+                                <th>Items</th>
+                                <th>Sub Total</th>
+                                <th>Tax</th>
+                                <th>Discount</th>
+                                <th>Total</th>
+                                <th>Payment</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model != null && Model.Any())
+                            {
+                                @foreach (var sale in Model)
+                                {
+                                    var statusClass = sale.PaymentStatus == StockMaster.Models.PaymentStatus.Paid ? "success" :
+                                    sale.PaymentStatus == StockMaster.Models.PaymentStatus.PartiallyPaid ? "warning" :
+                                    sale.PaymentStatus == StockMaster.Models.PaymentStatus.Cancelled ? "danger" : "secondary";
+
+                                    <tr>
+                                        <td><strong>@sale.InvoiceNumber</strong></td>
+                                        <td>@sale.SaleDate.ToString("yyyy-MM-dd HH:mm")</td>
+                                        <td>@(sale.User?.FullName ?? "N/A")</td>
+                                        <td>@(sale.SaleItems?.Count ?? 0)</td>
+                                        <td>$@sale.SubTotal.ToString("N2")</td>
+                                        <td>$@sale.TaxAmount.ToString("N2")</td>
+                                        <td>$@sale.DiscountAmount.ToString("N2")</td>
+                                        <td><strong>$@sale.TotalAmount.ToString("N2")</strong></td>
+                                        <td>@sale.PaymentMethod</td>
+                                        <td><span class="badge bg-@statusClass">@sale.PaymentStatus</span></td>
+                                        <td>
+                                            <a asp-action="Details" asp-route-id="@sale.Id" class="btn btn-sm btn-info" title="View Details">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a asp-action="Receipt" asp-route-id="@sale.Id" class="btn btn-sm btn-secondary" title="Print Receipt">
+                                                <i class="bi bi-receipt"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="11" class="text-center">No sales found for the selected period</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize DataTable if needed
+            if ($('#salesTable tbody tr').length > 1) {
+                $('#salesTable').DataTable({
+                    order: [[1, 'desc']],
+                    pageLength: 25
+                });
+            }
+        });
+    </script>
+}

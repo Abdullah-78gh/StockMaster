@@ -1,0 +1,167 @@
+﻿@model StockMaster.Models.Sale
+@{
+    ViewData["Title"] = $"Receipt - {Model.InvoiceNumber}";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Receipt - @Model.InvoiceNumber</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" />
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #fff;
+            margin: 20px;
+        }
+
+        .receipt {
+            max-width: 300px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+        }
+
+        .receipt-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+            .receipt-header h2 {
+                margin: 0;
+                font-size: 24px;
+            }
+
+            .receipt-header p {
+                margin: 5px 0;
+                font-size: 12px;
+            }
+
+        .receipt-items {
+            width: 100%;
+            margin: 15px 0;
+            font-size: 12px;
+        }
+
+            .receipt-items th {
+                border-bottom: 1px dashed #000;
+            }
+
+            .receipt-items td {
+                padding: 5px 0;
+            }
+
+        .receipt-totals {
+            margin-top: 15px;
+            border-top: 1px dashed #000;
+            padding-top: 10px;
+        }
+
+        .receipt-footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        @@media print {
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt">
+        <div class="receipt-header">
+            <h2>StockMaster</h2>
+            <p>Inventory & Sales Management System</p>
+            <p>@DateTime.Now.ToString("yyyy-MM-dd HH:mm")</p>
+            <p>Invoice: @Model.InvoiceNumber</p>
+        </div>
+
+        <div class="receipt-items">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th class="text-right">Qty</th>
+                        <th class="text-right">Price</th>
+                        <th class="text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.SaleItems)
+                    {
+                        <tr>
+                            <td>@(item.Product?.Name ?? "N/A")</td>
+                            <td class="text-right">@item.Quantity</td>
+                            <td class="text-right">$@item.UnitPrice.ToString("N2")</td>
+                            <td class="text-right">$@item.TotalPrice.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="receipt-totals">
+            <table class="table table-sm">
+                <tr>
+                    <td>Subtotal:</td>
+                    <td class="text-right">$@Model.SubTotal.ToString("N2")</td>
+                </tr>
+                <tr>
+                    <td>Tax:</td>
+                    <td class="text-right">$@Model.TaxAmount.ToString("N2")</td>
+                </tr>
+                <tr>
+                    <td>Discount:</td>
+                    <td class="text-right">$@Model.DiscountAmount.ToString("N2")</td>
+                </tr>
+                <tr>
+                    <td><strong>Total:</strong></td>
+                    <td class="text-right"><strong>$@Model.TotalAmount.ToString("N2")</strong></td>
+                </tr>
+                <tr>
+                    <td>Paid:</td>
+                    <td class="text-right">$@Model.AmountPaid.ToString("N2")</td>
+                </tr>
+                <tr>
+                    <td>Change:</td>
+                    <td class="text-right">$@Model.ChangeAmount.ToString("N2")</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="receipt-footer">
+            <p>Payment Method: @Model.PaymentMethod</p>
+            <p>Cashier: @(Model.User?.FullName ?? "N/A")</p>
+            <p>Thank you for your business!</p>
+        </div>
+
+        <div class="text-center mt-3 no-print">
+            <button class="btn btn-primary" onclick="window.print()">
+                <i class="bi bi-printer"></i> Print Receipt
+            </button>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Auto print when page loads (optional)
+        // window.onload = function() { window.print(); }
+    </script>
+</body>
+</html>

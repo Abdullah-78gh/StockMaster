@@ -1,0 +1,313 @@
+﻿@model StockMaster.ViewModels.CreateSaleViewModel
+@{
+    ViewData["Title"] = "New Sale";
+    var products = ViewBag.Products as IEnumerable<StockMaster.Models.Product> ?? new List<StockMaster.Models.Product>();
+    var currentUser = ViewBag.CurrentUser as StockMaster.Models.User;
+}
+
+<div class="row mb-4">
+    <div class="col">
+        <h2><i class="bi bi-cart-plus"></i> New Sale</h2>
+    </div>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle"></i> @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle"></i> @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row">
+    <!-- Products Panel -->
+    <div class="col-md-5 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-box"></i> Products</h5>
+            </div>
+            <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                @foreach (var product in products)
+                {
+                    <div class="card mb-2 product-card"
+                         data-id="@product.Id"
+                         data-name="@product.Name"
+                         data-price="@product.Price"
+                         data-stock="@product.QuantityInStock">
+                        <div class="card-body p-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>@product.Name</strong><br />
+                                    <small class="text-muted">SKU: @product.SKU | Stock: @product.QuantityInStock</small>
+                                </div>
+                                <div>
+                                    <span class="badge bg-primary">$@product.Price.ToString("N2")</span>
+                                    <button type="button" class="btn btn-sm btn-success ms-2 add-to-cart-btn">
+                                        <i class="bi bi-cart-plus"></i> Add
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Panel -->
+    <div class="col-md-7 mb-4">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-cart"></i> Shopping Cart</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="NewSale" method="post" id="saleForm">
+                    @Html.AntiForgeryToken()
+
+                    <!-- Cart Items Table -->
+                    <div class="table-responsive mb-3">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Price</th>
+                                    <th>Qty</th>
+                                    <th>Discount</th>
+                                    <th>Total</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="cartItems"></tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td colspan="4" class="text-end"><strong>Subtotal:</strong></td>
+                                    <td><strong id="subtotal">$0.00</strong></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="4" class="text-end">Tax (10%):</td>
+                                    <td id="tax">$0.00</td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td colspan="4" class="text-end">Total Discount:</td>
+                                    <td id="totalDiscount">$0.00</td>
+                                    <td></td>
+                                </tr>
+                                <tr class="table-primary">
+                                    <td colspan="4" class="text-end"><strong>Grand Total:</strong></td>
+                                    <td><strong id="grandTotal">$0.00</strong></td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- Hidden field for cart items - THIS IS CRITICAL -->
+                    <input type="hidden" name="CartItems" id="cartItemsInput" />
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="PaymentMethod" class="fw-bold">Payment Method</label>
+                            <select asp-for="PaymentMethod" class="form-control" id="PaymentMethod" required>
+                                <option value="">Select Payment Method</option>
+                                <option value="Cash">Cash</option>
+                                <option value="CreditCard">Credit Card</option>
+                                <option value="DebitCard">Debit Card</option>
+                                <option value="MobilePayment">Mobile Payment</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="AmountPaid" class="fw-bold">Amount Paid</label>
+                            <input asp-for="AmountPaid" class="form-control" id="AmountPaid" type="number" step="0.01" min="0" value="0" required />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Notes" class="fw-bold">Notes</label>
+                        <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+                    </div>
+
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-success btn-lg" id="completeSale" disabled>
+                            <i class="bi bi-check-circle"></i> Complete Sale
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary btn-lg">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let cart = [];
+
+        // Add to cart button click
+        $('.add-to-cart-btn').click(function() {
+            const card = $(this).closest('.product-card');
+            const id = parseInt(card.data('id'));
+            const name = card.data('name');
+            const price = parseFloat(card.data('price'));
+            const stock = parseInt(card.data('stock'));
+
+            const existingItem = cart.find(item => item.ProductId === id);
+
+            if (existingItem) {
+                if (existingItem.Quantity + 1 > stock) {
+                    alert('Insufficient stock!');
+                    return;
+                }
+                existingItem.Quantity++;
+                existingItem.Total = (existingItem.UnitPrice * existingItem.Quantity) - existingItem.Discount;
+            } else {
+                cart.push({
+                    ProductId: id,
+                    ProductName: name,
+                    UnitPrice: price,
+                    Quantity: 1,
+                    Discount: 0,
+                    Total: price
+                });
+            }
+
+            renderCart();
+        });
+
+        function renderCart() {
+            const tbody = $('#cartItems');
+            tbody.empty();
+
+            if (cart.length === 0) {
+                tbody.html('<tr><td colspan="6" class="text-center text-muted">Cart is empty</td></tr>');
+                $('#completeSale').prop('disabled', true);
+                updateTotals();
+                return;
+            }
+
+            cart.forEach((item, idx) => {
+                const itemTotal = (item.UnitPrice * item.Quantity) - item.Discount;
+
+                tbody.append(`
+                    <tr>
+                        <td>${item.ProductName}</td>
+                        <td>$${item.UnitPrice.toFixed(2)}</td>
+                        <td>
+                            <input type="number" class="form-control form-control-sm qty-input"
+                                   data-idx="${idx}" value="${item.Quantity}" min="1" style="width: 70px;">
+                        </td>
+                        <td>
+                            <input type="number" class="form-control form-control-sm discount-input"
+                                   data-idx="${idx}" value="${item.Discount}" min="0" step="0.01" style="width: 90px;">
+                        </td>
+                        <td>$${itemTotal.toFixed(2)}</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-danger remove-item" data-idx="${idx}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `);
+            });
+
+            updateTotals();
+            $('#completeSale').prop('disabled', false);
+
+            // Update hidden field with cart data
+            $('#cartItemsInput').val(JSON.stringify(cart));
+        }
+
+        function updateTotals() {
+            let subtotal = 0;
+            let totalDiscount = 0;
+
+            cart.forEach(item => {
+                subtotal += item.UnitPrice * item.Quantity;
+                totalDiscount += item.Discount;
+            });
+
+            const tax = subtotal * 0.10;
+            const grandTotal = subtotal + tax - totalDiscount;
+
+            $('#subtotal').text(`$${subtotal.toFixed(2)}`);
+            $('#tax').text(`$${tax.toFixed(2)}`);
+            $('#totalDiscount').text(`$${totalDiscount.toFixed(2)}`);
+            $('#grandTotal').text(`$${grandTotal.toFixed(2)}`);
+
+            // Set minimum amount paid
+            $('#AmountPaid').attr('min', grandTotal.toFixed(2));
+        }
+
+        // Quantity change
+        $(document).on('change', '.qty-input', function() {
+            const idx = $(this).data('idx');
+            let newQty = parseInt($(this).val());
+            if (isNaN(newQty) || newQty < 1) newQty = 1;
+            cart[idx].Quantity = newQty;
+            cart[idx].Total = (cart[idx].UnitPrice * newQty) - cart[idx].Discount;
+            renderCart();
+        });
+
+        // Discount change
+        $(document).on('change', '.discount-input', function() {
+            const idx = $(this).data('idx');
+            let discount = parseFloat($(this).val());
+            if (isNaN(discount) || discount < 0) discount = 0;
+
+            const maxDiscount = cart[idx].UnitPrice * cart[idx].Quantity;
+            if (discount > maxDiscount) discount = maxDiscount;
+
+            cart[idx].Discount = discount;
+            cart[idx].Total = (cart[idx].UnitPrice * cart[idx].Quantity) - discount;
+            renderCart();
+        });
+
+        // Remove item
+        $(document).on('click', '.remove-item', function() {
+            const idx = $(this).data('idx');
+            cart.splice(idx, 1);
+            renderCart();
+        });
+
+        // Form submission
+        $('#saleForm').submit(function(e) {
+            if (cart.length === 0) {
+                e.preventDefault();
+                alert('Please add items to cart');
+                return false;
+            }
+
+            const paymentMethod = $('#PaymentMethod').val();
+            if (!paymentMethod) {
+                e.preventDefault();
+                alert('Please select payment method');
+                return false;
+            }
+
+            const amountPaid = parseFloat($('#AmountPaid').val()) || 0;
+            const grandTotal = parseFloat($('#grandTotal').text().replace('$', ''));
+
+            if (amountPaid < grandTotal) {
+                if (!confirm(`Amount paid ($${amountPaid.toFixed(2)}) is less than total ($${grandTotal.toFixed(2)}). Continue?`)) {
+                    e.preventDefault();
+                    return false;
+                }
+            }
+
+            // Final update of hidden field
+            $('#cartItemsInput').val(JSON.stringify(cart));
+            console.log('Submitting cart:', $('#cartItemsInput').val());
+
+            return true;
+        });
+    </script>
+}

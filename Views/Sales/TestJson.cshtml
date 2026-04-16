@@ -1,0 +1,112 @@
+﻿@{
+    ViewData["Title"] = "Test JSON Format";
+}
+
+<h2>Test JSON Format</h2>
+
+<div class="card mb-3">
+    <div class="card-header bg-primary text-white">
+        <h5>Expected JSON Format (PascalCase)</h5>
+    </div>
+    <div class="card-body">
+        <pre id="expectedFormat" class="bg-light p-3">
+{
+  "PaymentMethod": "Cash",
+  "AmountPaid": 100.00,
+  "Notes": "Test sale",
+  "CartItems": [
+    {
+      "ProductId": 1,
+      "ProductName": "Test Product",
+      "UnitPrice": 10.99,
+      "Quantity": 2,
+      "Discount": 0,
+      "Total": 21.98
+    }
+  ]
+}
+        </pre>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header bg-success text-white">
+        <h5>Test Server Binding</h5>
+    </div>
+    <div class="card-body">
+        <button id="testBinding" class="btn btn-primary">Test JSON Binding</button>
+        <div id="result" class="mt-3"></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#testBinding').click(function() {
+                const testData = {
+                    PaymentMethod: "Cash",
+                    AmountPaid: 100.00,
+                    Notes: "Test sale from debug page",
+                    CartItems: [
+                        {
+                            ProductId: 1,
+                            ProductName: "Laptop",
+                            UnitPrice: 999.99,
+                            Quantity: 1,
+                            Discount: 0,
+                            Total: 999.99
+                        }
+                    ]
+                };
+
+                $('#result').html('<div class="alert alert-info">Sending test data... <div class="spinner-border spinner-border-sm"></div></div>');
+
+                fetch('/Sales/NewSale', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    body: JSON.stringify(testData)
+                })
+                .then(async response => {
+                    const contentType = response.headers.get('content-type');
+                    let data;
+
+                    if (contentType && contentType.includes('application/json')) {
+                        data = await response.json();
+                    } else {
+                        data = await response.text();
+                    }
+
+                    return { status: response.status, ok: response.ok, data };
+                })
+                .then(result => {
+                    if (result.ok) {
+                        $('#result').html(`
+                            <div class="alert alert-success">
+                                <h5>✅ Success!</h5>
+                                <pre>${JSON.stringify(result.data, null, 2)}</pre>
+                            </div>
+                        `);
+                    } else {
+                        $('#result').html(`
+                            <div class="alert alert-danger">
+                                <h5>❌ Error (Status: ${result.status})</h5>
+                                <pre>${JSON.stringify(result.data, null, 2)}</pre>
+                            </div>
+                        `);
+                    }
+                })
+                .catch(error => {
+                    $('#result').html(`
+                        <div class="alert alert-danger">
+                            <h5>❌ Network Error</h5>
+                            <pre>${error}</pre>
+                        </div>
+                    `);
+                });
+            });
+        });
+    </script>
+}
