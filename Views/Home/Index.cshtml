@@ -1,0 +1,342 @@
+﻿@model StockMaster.Models.DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+    var currentUser = ViewBag.CurrentUser as StockMaster.Models.User;
+}
+
+<div class="row mb-4">
+    <div class="col">
+        <h2><i class="bi bi-speedometer2"></i> Dashboard</h2>
+        <p class="text-muted">Welcome back, @(currentUser?.FullName ?? "User")!</p>
+    </div>
+    <div class="col-auto">
+        <span class="text-muted">@DateTime.Now.ToString("dddd, MMMM dd, yyyy")</span>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card bg-primary text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">Total Products</h6>
+                        <h2 class="mb-0">@Model.TotalProducts</h2>
+                    </div>
+                    <i class="bi bi-box fs-1"></i>
+                </div>
+                <a asp-controller="Products" asp-action="Index" class="text-white text-decoration-none">View All →</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-warning text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">Low Stock</h6>
+                        <h2 class="mb-0">@Model.LowStockProducts</h2>
+                    </div>
+                    <i class="bi bi-exclamation-triangle fs-1"></i>
+                </div>
+                <a asp-controller="Products" asp-action="LowStock" class="text-white text-decoration-none">View Alerts →</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-success text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">Today's Sales</h6>
+                        <h2 class="mb-0">@Model.TodaySales</h2>
+                    </div>
+                    <i class="bi bi-cart-check fs-1"></i>
+                </div>
+                <span class="text-white">Revenue: $@Model.TodayRevenue.ToString("N2")</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-info text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">Alerts</h6>
+                        <h2 class="mb-0">@Model.PendingNotifications</h2>
+                    </div>
+                    <i class="bi bi-bell fs-1"></i>
+                </div>
+                <span class="text-white">Pending notifications</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <div class="col-md-8 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-graph-up"></i> Sales Trend (Last 7 Days)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="salesTrendChart" style="height: 300px;"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-pie-chart"></i> Category Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="categoryChart" style="height: 300px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity Row -->
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="bi bi-clock-history"></i> Recent Sales</h5>
+                <a asp-controller="Sales" asp-action="Index" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Time</th>
+                                <th>Cashier</th>
+                                <th>Total</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.RecentSales != null && Model.RecentSales.Any())
+                            {
+                                @foreach (var sale in Model.RecentSales)
+                                {
+                                    <tr>
+                                        <td>@sale.InvoiceNumber</td>
+                                        <td>@sale.SaleDate.ToString("HH:mm")</td>
+                                        <td>@(sale.User?.FullName ?? "N/A")</td>
+                                        <td>$@sale.TotalAmount.ToString("N2")</td>
+                                        <td>
+                                            <a asp-controller="Sales" asp-action="Details" asp-route-id="@sale.Id" class="btn btn-sm btn-info">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-center">No recent sales</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="bi bi-exclamation-triangle"></i> Low Stock Alerts</h5>
+                <a asp-controller="Products" asp-action="LowStock" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>SKU</th>
+                                <th>Current Stock</th>
+                                <th>Min Level</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.LowStockAlerts != null && Model.LowStockAlerts.Any())
+                            {
+                                @foreach (var alert in Model.LowStockAlerts)
+                                {
+                                    <tr>
+                                        <td>@(alert.Product?.Name ?? "N/A")</td>
+                                        <td>@(alert.Product?.SKU ?? "N/A")</td>
+                                        <td class="@(alert.CurrentQuantity == 0 ? "text-danger" : "text-warning") fw-bold">
+                                            @alert.CurrentQuantity
+                                        </td>
+                                        <td>@alert.MinimumStockLevel</td>
+                                        <td>
+                                            @if (alert.CurrentQuantity == 0)
+                                            {
+                                                <span class="badge bg-danger">Out of Stock</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning">Low Stock</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="5" class="text-center">No low stock alerts</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Products Row -->
+@if (Model.TopSellingProducts != null && Model.TopSellingProducts.Any())
+{
+    <div class="row mt-3">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-trophy"></i> Top Selling Products</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Quantity Sold</th>
+                                    <th>Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var product in Model.TopSellingProducts)
+                                {
+                                    <tr>
+                                        <td>@product.ProductName</td>
+                                        <td>@product.TotalQuantitySold</td>
+                                        <td>$@product.TotalRevenue.ToString("N2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Sales Trend Chart
+            var salesCtx = document.getElementById('salesTrendChart');
+            if (salesCtx) {
+                @{
+                        var salesLabels = new List<string>();
+                        var salesValues = new List<decimal>();
+
+                        if (Model.SalesTrend != null)
+                        {
+                                foreach (var item in Model.SalesTrend)
+                                {
+                                        salesLabels.Add($"\"{item.Label}\"");
+                                        salesValues.Add(item.Value);
+                                }
+                        }
+                }
+
+                var salesData = {
+                    labels: [@Html.Raw(string.Join(",", salesLabels))],
+                    values: [@string.Join(",", salesValues.Select(v => v.ToString("F2")))]
+                };
+
+                new Chart(salesCtx, {
+                    type: 'line',
+                    data: {
+                        labels: salesData.labels,
+                        datasets: [{
+                            label: 'Sales ($)',
+                            data: salesData.values,
+                            borderColor: 'rgb(75, 192, 192)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            tension: 0.1,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
+
+            // Category Distribution Chart
+            var categoryCtx = document.getElementById('categoryChart');
+            if (categoryCtx) {
+                @{
+                        var categoryLabels = new List<string>();
+                        var categoryValues = new List<int>();
+
+                        if (Model.CategoryDistribution != null)
+                        {
+                                foreach (var item in Model.CategoryDistribution)
+                                {
+                                        categoryLabels.Add($"\"{item.CategoryName}\"");
+                                        categoryValues.Add(item.ProductCount);
+                                }
+                        }
+                }
+
+                var categoryData = {
+                    labels: [@Html.Raw(string.Join(",", categoryLabels))],
+                    values: [@string.Join(",", categoryValues)]
+                };
+
+                new Chart(categoryCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: categoryData.labels,
+                        datasets: [{
+                            data: categoryData.values,
+                            backgroundColor: [
+                                'rgb(255, 99, 132)',
+                                'rgb(54, 162, 235)',
+                                'rgb(255, 205, 86)',
+                                'rgb(75, 192, 192)',
+                                'rgb(153, 102, 255)',
+                                'rgb(255, 159, 64)'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+}

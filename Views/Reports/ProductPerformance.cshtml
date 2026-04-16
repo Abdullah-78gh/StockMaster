@@ -1,0 +1,182 @@
+﻿@model StockMaster.ViewModels.ProductPerformanceReportViewModel
+@{
+    ViewData["Title"] = "Product Performance Report";
+    var currentUser = ViewBag.CurrentUser as StockMaster.Models.User;
+}
+
+<div class="row mb-4">
+    <div class="col">
+        <h2><i class="bi bi-graph-up"></i> Product Performance Report</h2>
+    </div>
+</div>
+
+<!-- Date Filter -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" name="startDate" class="form-control" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">End Date</label>
+                        <input type="date" name="endDate" class="form-control" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search"></i> Generate Report
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h5>Period: @Model.StartDate.ToString("MMM dd, yyyy") - @Model.EndDate.ToString("MMM dd, yyyy")</h5>
+                <h3>Total Products Sold: @Model.ProductPerformance.Sum(p => p.QuantitySold)</h3>
+                <h3>Total Revenue: $@Model.ProductPerformance.Sum(p => p.TotalRevenue).ToString("N2")</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Products Chart -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Top Selling Products</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="topProductsChart" style="height: 400px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Product Performance Table -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Product Performance Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="performanceTable">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Category</th>
+                                <th>Quantity Sold</th>
+                                <th>Average Price</th>
+                                <th>Total Revenue</th>
+                                <th>% of Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.ProductPerformance != null && Model.ProductPerformance.Any())
+                            {
+                                var totalRevenue = Model.ProductPerformance.Sum(p => p.TotalRevenue);
+
+                                @foreach (var product in Model.ProductPerformance.OrderByDescending(p => p.TotalRevenue))
+                                {
+                                    var percentage = totalRevenue > 0 ? (product.TotalRevenue / totalRevenue) * 100 : 0;
+
+                                    <tr>
+                                        <td>@product.ProductName</td>
+                                        <td>@product.CategoryName</td>
+                                        <td>@product.QuantitySold</td>
+                                        <td>$@product.AveragePrice.ToString("N2")</td>
+                                        <td><strong>$@product.TotalRevenue.ToString("N2")</strong></td>
+                                        <td>@percentage.ToString("F1")%</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="6" class="text-center">No sales data for the selected period</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Initialize DataTable
+            $('#performanceTable').DataTable({
+                pageLength: 25,
+                order: [[4, 'desc']]
+            });
+
+            // Top Products Chart
+            var ctx = document.getElementById('topProductsChart').getContext('2d');
+
+            @{
+                    var chartLabels = new List<string>();
+                    var chartValues = new List<decimal>();
+
+                    if (Model.ProductPerformance != null)
+                    {
+                            var topProducts = Model.ProductPerformance.OrderByDescending(p => p.TotalRevenue).Take(10);
+
+                            foreach (var product in topProducts)
+                            {
+                                    chartLabels.Add($"\"{product.ProductName}\"");
+                                    chartValues.Add(product.TotalRevenue);
+                            }
+                    }
+            }
+
+            var chartData = {
+                labels: [@Html.Raw(string.Join(",", chartLabels))],
+                values: [@string.Join(",", chartValues.Select(v => v.ToString(System.Globalization.CultureInfo.InvariantCulture)))]
+            };
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        label: 'Revenue ($)',
+                        data: chartData.values,
+                        backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                        borderColor: 'rgb(75, 192, 192)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+}

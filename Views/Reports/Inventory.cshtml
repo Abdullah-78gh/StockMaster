@@ -1,0 +1,150 @@
+﻿@model StockMaster.ViewModels.InventoryReportViewModel
+@{
+    ViewData["Title"] = "Inventory Report";
+    var currentUser = ViewBag.CurrentUser as StockMaster.Models.User;
+}
+
+<div class="row mb-4">
+    <div class="col">
+        <h2><i class="bi bi-boxes"></i> Inventory Report</h2>
+        <p class="text-muted">Generated: @DateTime.Now.ToString("yyyy-MM-dd HH:mm")</p>
+    </div>
+    <div class="col-auto">
+        <a asp-action="ExportInventoryReport" class="btn btn-success">
+            <i class="bi bi-download"></i> Export to CSV
+        </a>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h6>Total Products</h6>
+                <h3>@Model.TotalProducts</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h6>Categories</h6>
+                <h3>@Model.TotalCategories</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <h6>Low Stock Items</h6>
+                <h3>@Model.LowStockItems</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <h6>Out of Stock</h6>
+                <h3>@Model.OutOfStockItems</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Inventory Value -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h5>Total Inventory Value</h5>
+                <h2>$@Model.TotalInventoryValue.ToString("N2")</h2>
+                <small>Based on cost price</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Inventory Table -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Inventory Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="inventoryTable">
+                        <thead>
+                            <tr>
+                                <th>SKU</th>
+                                <th>Product Name</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Cost</th>
+                                <th>Stock</th>
+                                <th>Min Level</th>
+                                <th>Value</th>
+                                <th>Status</th>
+                                <th>Location</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.Products != null && Model.Products.Any())
+                            {
+                                @foreach (var product in Model.Products)
+                                {
+                                    var status = product.QuantityInStock == 0 ? "Out of Stock" :
+                                    product.QuantityInStock <= product.MinimumStockLevel ? "Low Stock" : "OK";
+                                    var statusClass = product.QuantityInStock == 0 ? "danger" :
+                                    product.QuantityInStock <= product.MinimumStockLevel ? "warning" : "success";
+                                    var value = product.Cost * product.QuantityInStock;
+
+                                    <tr>
+                                        <td>@product.SKU</td>
+                                        <td>@product.Name</td>
+                                        <td>@product.Category?.Name</td>
+                                        <td>$@product.Price.ToString("N2")</td>
+                                        <td>$@product.Cost.ToString("N2")</td>
+                                        <td class="@(product.QuantityInStock <= product.MinimumStockLevel ? "text-danger fw-bold" : "")">
+                                            @product.QuantityInStock
+                                        </td>
+                                        <td>@product.MinimumStockLevel</td>
+                                        <td>$@value.ToString("N2")</td>
+                                        <td><span class="badge bg-@statusClass">@status</span></td>
+                                        <td>@(product.Location ?? "N/A")</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="10" class="text-center">No products found</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr class="fw-bold">
+                                <td colspan="7">Total Inventory Value:</td>
+                                <td>$@Model.TotalInventoryValue.ToString("N2")</td>
+                                <td colspan="2"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize DataTable
+            $('#inventoryTable').DataTable({
+                pageLength: 25,
+                order: [[1, 'asc']]
+            });
+        });
+    </script>
+}
