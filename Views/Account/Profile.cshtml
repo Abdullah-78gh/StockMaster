@@ -1,0 +1,123 @@
+﻿@model StockMaster.Models.User
+@{
+    ViewData["Title"] = "My Profile";
+    var currentUser = ViewBag.CurrentUser as StockMaster.Models.User;
+}
+
+<div class="row mb-4">
+    <div class="col">
+        <h2><i class="bi bi-person-circle"></i> My Profile</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <i class="bi bi-person-circle" style="font-size: 5rem;"></i>
+                </div>
+                <h4>@Model.FullName</h4>
+                <p class="text-muted">@@@Model.Username</p>
+                <span class="badge bg-primary">@Model.Role</span>
+
+                <hr />
+
+                <div class="text-start">
+                    <p><i class="bi bi-envelope"></i> @Model.Email</p>
+                    <p><i class="bi bi-telephone"></i> @(Model.PhoneNumber ?? "Not provided")</p>
+                    <p><i class="bi bi-calendar"></i> Member since: @Model.CreatedAt.ToString("MMM dd, yyyy")</p>
+                    @if (Model.LastLoginAt.HasValue)
+                    {
+                        <p><i class="bi bi-clock-history"></i> Last login: @Model.LastLoginAt.Value.ToString("yyyy-MM-dd HH:mm")</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <!-- Change Password -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="bi bi-key"></i> Change Password</h5>
+            </div>
+            <div class="card-body">
+                @if (TempData["Success"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="bi bi-check-circle"></i> @TempData["Success"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+                @if (TempData["Error"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="bi bi-exclamation-triangle"></i> @TempData["Error"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+
+                <form asp-action="ChangePassword" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-3">
+                        <label class="form-label">Current Password</label>
+                        <input type="password" name="currentPassword" class="form-control" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">New Password</label>
+                        <input type="password" name="newPassword" class="form-control" required minlength="6" />
+                        <small class="text-muted">Minimum 6 characters</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Confirm New Password</label>
+                        <input type="password" name="confirmPassword" class="form-control" required />
+                    </div>
+
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-key"></i> Change Password
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Account Information -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-info-circle"></i> Account Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Username:</strong> @Model.Username</p>
+                        <p><strong>Full Name:</strong> @Model.FullName</p>
+                        <p><strong>Email:</strong> @Model.Email</p>
+                        <p><strong>Phone:</strong> @(Model.PhoneNumber ?? "Not provided")</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Role:</strong> <span class="badge bg-primary">@Model.Role</span></p>
+                        <p>
+                            <strong>Account Status:</strong>
+                            @if (Model.IsActive)
+                            {
+                                <span class="badge bg-success">Active</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">Inactive</span>
+                            }
+                        </p>
+                        <p><strong>Member Since:</strong> @Model.CreatedAt.ToString("MMMM dd, yyyy")</p>
+                        @if (Model.LastLoginAt.HasValue)
+                        {
+                            <p><strong>Last Login:</strong> @Model.LastLoginAt.Value.ToString("MMMM dd, yyyy 'at' HH:mm")</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
