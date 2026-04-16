@@ -1,0 +1,168 @@
+﻿@model IEnumerable<StockMaster.Models.InventoryLog>
+@{
+    ViewData["Title"] = "Inventory Logs";
+    var currentUser = ViewBag.CurrentUser as StockMaster.Models.User;
+}
+
+<div class="row mb-4">
+    <div class="col">
+        <h2><i class="bi bi-journal-text"></i> Inventory Logs</h2>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <input type="text" id="searchLogs" class="form-control" placeholder="Search by product, SKU, or reference..." />
+                    </div>
+                    <div class="col-md-3">
+                        <select id="actionFilter" class="form-select">
+                            <option value="">All Actions</option>
+                            <option value="StockIn">Stock In</option>
+                            <option value="StockOut">Stock Out</option>
+                            <option value="Adjustment">Adjustment</option>
+                            <option value="Sale">Sale</option>
+                            <option value="Purchase">Purchase</option>
+                            <option value="Return">Return</option>
+                            <option value="Damaged">Damaged</option>
+                            <option value="Lost">Lost</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="date" id="dateFilter" class="form-control" placeholder="Filter by date" />
+                    </div>
+                    <div class="col-md-2">
+                        <button id="clearFilters" class="btn btn-secondary w-100">
+                            <i class="bi bi-arrow-counterclockwise"></i> Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Logs Table -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="logsTable">
+                        <thead>
+                            <tr>
+                                <th>Date & Time</th>
+                                <th>Product</th>
+                                <th>SKU</th>
+                                <th>Action</th>
+                                <th>Quantity</th>
+                                <th>Previous</th>
+                                <th>New</th>
+                                <th>Change</th>
+                                <th>Performed By</th>
+                                <th>Reference</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model != null && Model.Any())
+                            {
+                                @foreach (var log in Model)
+                                {
+                                    var actionClass = log.Action == StockMaster.Models.InventoryAction.StockIn ||
+                                    log.Action == StockMaster.Models.InventoryAction.Purchase ||
+                                    log.Action == StockMaster.Models.InventoryAction.Return ? "success" :
+                                    log.Action == StockMaster.Models.InventoryAction.StockOut ||
+                                    log.Action == StockMaster.Models.InventoryAction.Sale ? "danger" :
+                                    log.Action == StockMaster.Models.InventoryAction.Adjustment ? "warning" : "secondary";
+
+                                    var change = log.NewQuantity - log.PreviousQuantity;
+                                    var changeClass = change > 0 ? "text-success" : change < 0 ? "text-danger" : "";
+
+                                    <tr>
+                                        <td>@log.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                        <td>@(log.Product?.Name ?? "N/A")</td>
+                                        <td>@(log.Product?.SKU ?? "N/A")</td>
+                                        <td><span class="badge bg-@actionClass">@log.Action</span></td>
+                                        <td class="fw-bold">@log.Quantity</td>
+                                        <td>@log.PreviousQuantity</td>
+                                        <td>@log.NewQuantity</td>
+                                        <td class="@changeClass fw-bold">
+                                            @(change > 0 ? "+" : "")@change
+                                        </td>
+                                        <td>@(log.User?.FullName ?? "N/A")</td>
+                                        <td>@(log.ReferenceNumber ?? "-")</td>
+                                        <td>@(log.Notes ?? "-")</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="11" class="text-center">No inventory logs found</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            var table = $('#logsTable').DataTable({
+                order: [[0, 'desc']],
+                pageLength: 50
+            });
+
+            // Search filter
+            $('#searchLogs').on('keyup', function() {
+                table.search(this.value).draw();
+            });
+
+            // Action filter
+            $('#actionFilter').on('change', function() {
+                var action = $(this).val();
+                if (action) {
+                    table.column(3).search(action).draw();
+                } else {
+                    table.column(3).search('').draw();
+                }
+            });
+
+            // Date filter
+            $('#dateFilter').on('change', function() {
+                var date = $(this).val();
+                if (date) {
+                    // Custom filtering function for date
+                    $.fn.dataTable.ext.search.push(
+                        function(settings, data, dataIndex) {
+                            var logDate = data[0].split(' ')[0]; // Get just the date part
+                            return logDate === date;
+                        }
+                    );
+                    table.draw();
+                    $.fn.dataTable.ext.search.pop();
+                } else {
+                    table.draw();
+                }
+            });
+
+            // Clear filters
+            $('#clearFilters').click(function() {
+                $('#searchLogs').val('');
+                $('#actionFilter').val('');
+                $('#dateFilter').val('');
+                table.search('').draw();
+                table.column(3).search('').draw();
+            });
+        });
+    </script>
+}

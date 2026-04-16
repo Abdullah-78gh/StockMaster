@@ -1,0 +1,37 @@
+﻿@model StockMaster.Models.Product
+@{
+    Layout = null;
+}
+
+<div class="modal-header">
+    <h5 class="modal-title">Delete Product</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body">
+    <p>Are you sure you want to delete the product <strong>@Model.Name</strong>?</p>
+    <p class="text-danger">This action cannot be undone.</p>
+
+    <dl class="row">
+        <dt class="col-sm-4">SKU</dt>
+        <dd class="col-sm-8">@Model.SKU</dd>
+
+        <dt class="col-sm-4">Category</dt>
+        <dd class="col-sm-8">@Model.Category?.Name</dd>
+
+        <dt class="col-sm-4">Current Stock</dt>
+        <dd class="col-sm-8">@Model.QuantityInStock</dd>
+
+        <dt class="col-sm-4">Price</dt>
+        <dd class="col-sm-8">$@Model.Price.ToString("N2")</dd>
+    </dl>
+</div>
+<div class="modal-footer">
+    <form asp-action="Delete" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@Model.Id" />
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-danger">
+            <i class="bi bi-trash"></i> Delete
+        </button>
+    </form>
+</div>

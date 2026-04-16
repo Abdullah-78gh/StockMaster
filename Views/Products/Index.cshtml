@@ -1,0 +1,127 @@
+﻿@model IEnumerable<StockMaster.Models.Product>
+@{
+    ViewData["Title"] = "Products";
+    var currentUser = ViewBag.CurrentUser as StockMaster.Models.User;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-box"></i> Products</h2>
+    @if (currentUser?.Role == StockMaster.Models.UserRole.Admin ||
+        currentUser?.Role == StockMaster.Models.UserRole.Manager)
+    {
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Add New Product
+        </a>
+    }
+</div>
+
+<!-- Search and Filter -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <form asp-action="Index" method="get" class="d-flex">
+            <input type="text" name="searchTerm" class="form-control me-2" placeholder="Search by name, SKU, or barcode..." value="@ViewBag.SearchTerm" />
+            <button type="submit" class="btn btn-outline-primary">
+                <i class="bi bi-search"></i> Search
+            </button>
+        </form>
+    </div>
+    <div class="col-md-4">
+        <select class="form-select" id="categoryFilter" onchange="filterByCategory(this.value)">
+            <option value="0">All Categories</option>
+            @foreach (var category in ViewBag.Categories)
+            {
+                <option value="@category.Value" selected="@(category.Selected ? "selected" : null)">@category.Text</option>
+            }
+        </select>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover" id="productsTable">
+                <thead>
+                    <tr>
+                        <th>SKU</th>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Cost</th>
+                        <th>Stock</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var product in Model)
+                    {
+                        var stockStatus = product.QuantityInStock <= product.MinimumStockLevel ? "Low Stock" : "In Stock";
+                        var statusClass = product.QuantityInStock <= product.MinimumStockLevel ? "text-danger" : "text-success";
+
+                        <tr>
+                            <td>@product.SKU</td>
+                            <td>@product.Name</td>
+                            <td>@product.Category?.Name</td>
+                            <td>$@product.Price.ToString("N2")</td>
+                            <td>$@product.Cost.ToString("N2")</td>
+                            <td class="@statusClass fw-bold">
+                                @product.QuantityInStock
+                                @if (product.QuantityInStock <= product.MinimumStockLevel)
+                                {
+                                    <i class="bi bi-exclamation-triangle-fill text-warning" title="Low Stock"></i>
+                                }
+                            </td>
+                            <td>@product.Location</td>
+                            <td>
+                                @if (product.IsActive)
+                                {
+                                    <span class="badge bg-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Inactive</span>
+                                }
+                            </td>
+                            <td>
+                                <a asp-action="Details" asp-route-id="@product.Id" class="btn btn-sm btn-info" title="View Details">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                @if (currentUser?.Role == StockMaster.Models.UserRole.Admin ||
+                                                            currentUser?.Role == StockMaster.Models.UserRole.Manager)
+                                {
+                                    <a asp-action="Edit" asp-route-id="@product.Id" class="btn btn-sm btn-warning" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteProduct(@product.Id, '@product.Name')" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<form id="deleteForm" asp-action="Delete" method="post" style="display: none;">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" id="deleteId" />
+</form>
+
+@section Scripts {
+    <script>
+        function deleteProduct(id, name) {
+            if (confirm(`Are you sure you want to delete product "${name}"?`)) {
+                document.getElementById('deleteId').value = id;
+                document.getElementById('deleteForm').submit();
+            }
+        }
+
+        function filterByCategory(categoryId) {
+            window.location.href = '@Url.Action("Index")?categoryId=' + categoryId;
+        }
+    </script>
+}

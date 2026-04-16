@@ -1,0 +1,134 @@
+﻿@model IEnumerable<StockMaster.Models.Product>
+@{
+    ViewData["Title"] = "Low Stock Products";
+    var currentUser = ViewBag.CurrentUser as StockMaster.Models.User;
+    var notifications = ViewBag.Notifications as IEnumerable<StockMaster.Models.LowStockNotification>;
+}
+
+<div class="row mb-4">
+    <div class="col">
+        <h2><i class="bi bi-exclamation-triangle"></i> Low Stock Alerts</h2>
+    </div>
+</div>
+
+<!-- Notifications -->
+@if (notifications != null && notifications.Any())
+{
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5><i class="bi bi-bell"></i> Pending Notifications</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Current Stock</th>
+                                    <th>Min Level</th>
+                                    <th>Alert Date</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var notification in notifications)
+                                {
+                                    <tr>
+                                        <td>@notification.Product?.Name</td>
+                                        <td class="text-danger fw-bold">@notification.CurrentQuantity</td>
+                                        <td>@notification.MinimumStockLevel</td>
+                                        <td>@notification.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-success" onclick="resolveNotification(@notification.Id)">
+                                                <i class="bi bi-check-circle"></i> Mark Resolved
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Low Stock Products -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Low Stock Products</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>SKU</th>
+                                <th>Product Name</th>
+                                <th>Category</th>
+                                <th>Current Stock</th>
+                                <th>Min Level</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model != null && Model.Any())
+                            {
+                                @foreach (var product in Model)
+                                {
+                                    var status = product.QuantityInStock == 0 ? "Out of Stock" : "Low Stock";
+                                    var badgeClass = product.QuantityInStock == 0 ? "bg-danger" : "bg-warning";
+
+                                    <tr>
+                                        <td>@product.SKU</td>
+                                        <td>@product.Name</td>
+                                        <td>@product.Category?.Name</td>
+                                        <td class="fw-bold text-danger">@product.QuantityInStock</td>
+                                        <td>@product.MinimumStockLevel</td>
+                                        <td><span class="badge @badgeClass">@status</span></td>
+                                        <td>
+                                            <a asp-action="Edit" asp-route-id="@product.Id" class="btn btn-sm btn-warning">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a asp-action="Details" asp-route-id="@product.Id" class="btn btn-sm btn-info">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="7" class="text-center">No low stock products found</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="resolveForm" asp-action="ResolveNotification" method="post" style="display: none;">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" id="resolveId" />
+</form>
+
+@section Scripts {
+    <script>
+        function resolveNotification(id) {
+            if (confirm('Mark this notification as resolved?')) {
+                document.getElementById('resolveId').value = id;
+                document.getElementById('resolveForm').submit();
+            }
+        }
+    </script>
+}
