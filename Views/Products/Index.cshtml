@@ -1,4 +1,4 @@
-﻿@model IEnumerable<StockMaster.Models.Product>
+@model IEnumerable<StockMaster.Models.Product>
 @{
     ViewData["Title"] = "Products";
     var currentUser = ViewBag.CurrentUser as StockMaster.Models.User;
@@ -93,6 +93,9 @@
                                     <a asp-action="Edit" asp-route-id="@product.Id" class="btn btn-sm btn-warning" title="Edit">
                                         <i class="bi bi-pencil"></i>
                                     </a>
+                                    <button type="button" class="btn btn-sm btn-success" onclick="increaseStock(@product.Id, '@product.Name')" title="Increase Stock">
+                                        <i class="bi bi-box-arrow-in-down"></i>
+                                    </button>
                                     <button type="button" class="btn btn-sm btn-danger" onclick="deleteProduct(@product.Id, '@product.Name')" title="Delete">
                                         <i class="bi bi-trash"></i>
                                     </button>
@@ -111,12 +114,44 @@
     <input type="hidden" name="id" id="deleteId" />
 </form>
 
+<form id="adjustStockForm" asp-action="AdjustStock" method="post" style="display: none;">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" id="adjustId" />
+    <input type="hidden" name="addedQuantity" id="adjustQuantity" />
+</form>
+
 @section Scripts {
     <script>
         function deleteProduct(id, name) {
             if (confirm(`Are you sure you want to delete product "${name}"?`)) {
                 document.getElementById('deleteId').value = id;
                 document.getElementById('deleteForm').submit();
+            }
+        }
+
+        async function increaseStock(id, name) {
+            const amount = prompt(`How much stock would you like to add for "${name}"?`);
+            if (amount !== null && !isNaN(amount) && parseInt(amount) > 0) {
+                const formData = new FormData(document.getElementById('adjustStockForm'));
+                formData.set('id', id);
+                formData.set('addedQuantity', amount);
+
+                try {
+                    const response = await fetch('@Url.Action("AdjustStock")', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        window.location.reload();
+                    } else {
+                        alert(result.message || 'Failed to update stock');
+                    }
+                } catch (error) {
+                    alert('An error occurred while updating stock');
+                }
+            } else if (amount !== null) {
+                alert('Please enter a valid positive number');
             }
         }
 

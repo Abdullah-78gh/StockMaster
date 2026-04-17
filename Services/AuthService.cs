@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using StockMaster.Models;
 using StockMaster.Repositories;
 using StockMaster.ViewModels;
@@ -107,6 +107,23 @@ namespace StockMaster.Services
         {
             var user = GetCurrentUser();
             return user != null && user.Role == role;
+        }
+
+        public async Task<bool> UpdateProfileImageAsync(int userId, string imageUrl)
+        {
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null)
+                return false;
+
+            user.ProfileImageUrl = imageUrl;
+            _userRepository.Update(user);
+            await _userRepository.SaveChangesAsync();
+
+            // Update user in session
+            var userJson = JsonSerializer.Serialize(user);
+            _httpContextAccessor.HttpContext?.Session.SetString(SessionKeyUser, userJson);
+
+            return true;
         }
     }
 }

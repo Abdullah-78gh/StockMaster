@@ -1,17 +1,22 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using StockMaster.Services;
 using StockMaster.ViewModels;
 using StockMaster.Models;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using System.IO;
 
 namespace StockMaster.Controllers
 {
     public class AccountController : Controller
     {
         private readonly IAuthService _authService;
+        private readonly IWebHostEnvironment _env;
 
-        public AccountController(IAuthService authService)
+        public AccountController(IAuthService authService, IWebHostEnvironment env)
         {
             _authService = authService;
+            _env = env;
         }
 
         [HttpGet]
@@ -102,6 +107,55 @@ namespace StockMaster.Controllers
                 return RedirectToAction("Login");
 
             return View(user);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UploadProfileImage(IFormFile profileImage)
+        {
+            var user = _authService.GetCurrentUser();
+            if (user == null)
+                return RedirectToAction("Login");
+
+            if (profileImage != null && profileImage.Length > 0)
+            {
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+                var extension = Path.GetExtension(profileImage.FileName).ToLowerInvariant();
+                if (!allowedExtensions.Contains(extension))
+                {
+                    TempData["Error"] = "Only JPG, PNG and GIF images are allowed.";
+                    return RedirectToAction("Profile");
+                }
+
+                if (profileImage.Length > 5 * 1024 * 1024) // 5MB limit
+                {
+                    TempData["Error"] = "Image size cannot exceed 5MB.";
+                    return RedirectToAction("Profile");
+                }
+
+                var uploadsFolder = Path.Combine(_env.WebRootPath, "images", "profiles");
+                if (!Directory.Exists(uploadsFolder))
+                    Directory.CreateDirectory(uploadsFolder);
+
+                var uniqueFileName = Guid.NewGuid().ToString() + extension;
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await profileImage.CopyToAsync(fileStream);
+                }
+
+                var imageUrl = "/images/profiles/" + uniqueFileName;
+                await _authService.UpdateProfileImageAsync(user.Id, imageUrl);
+
+                TempData["Success"] = "Profile picture updated successfully!";
+            }
+            else
+            {
+                TempData["Error"] = "Please select an image to upload.";
+            }
+
+            return RedirectToAction("Profile");
         }
 
         [HttpPost]

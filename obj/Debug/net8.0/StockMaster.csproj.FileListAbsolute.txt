@@ -111,5 +111,4 @@ D:\ASP.NET project\StockMaster\bin\Debug\net8.0\NodaTime.dll
 D:\ASP.NET project\StockMaster\bin\Debug\net8.0\Npgsql.EntityFrameworkCore.PostgreSQL.NodaTime.dll
 D:\ASP.NET project\StockMaster\bin\Debug\net8.0\Npgsql.NodaTime.dll
 D:\ASP.NET project\StockMaster\obj\Debug\net8.0\EFCoreNpgsqlNodaTime.cs
-D:\ASP.NET project\StockMaster\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt
 D:\ASP.NET project\StockMaster\obj\Debug\net8.0\StockMaster.sourcelink.json

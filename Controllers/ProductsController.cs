@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using StockMaster.Models;
 using StockMaster.Repositories;
@@ -184,6 +184,33 @@ namespace StockMaster.Controllers
             }
 
             return Json(new { success = false, message = "Product not found" });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AdjustStock(int id, int addedQuantity)
+        {
+            if (!IsAdminOrManager())
+                return Json(new { success = false, message = "Unauthorized" });
+
+            try
+            {
+                var currentUser = _authService.GetCurrentUser();
+                if (currentUser == null)
+                    return Json(new { success = false, message = "User not found" });
+
+                var product = await _inventoryService.GetProductByIdAsync(id);
+                if (product == null)
+                    return Json(new { success = false, message = "Product not found" });
+
+                await _inventoryService.AdjustStockAsync(id, product.QuantityInStock + addedQuantity, "Direct stock increase", currentUser.Id);
+                
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
         }
 
         [HttpGet]

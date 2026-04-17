@@ -1,4 +1,4 @@
-﻿@model StockMaster.Models.DashboardViewModel
+@model StockMaster.Models.DashboardViewModel
 @{
     ViewData["Title"] = "Dashboard";
     var currentUser = ViewBag.CurrentUser as StockMaster.Models.User;
@@ -17,58 +17,58 @@
 <!-- Summary Cards -->
 <div class="row mb-4">
     <div class="col-md-3 mb-3">
-        <div class="card bg-primary text-white h-100">
+        <div class="card dash-card dash-card-products h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="card-title">Total Products</h6>
                         <h2 class="mb-0">@Model.TotalProducts</h2>
                     </div>
-                    <i class="bi bi-box fs-1"></i>
+                    <i class="bi bi-box fs-1 dash-card-icon"></i>
                 </div>
-                <a asp-controller="Products" asp-action="Index" class="text-white text-decoration-none">View All →</a>
+                <a asp-controller="Products" asp-action="Index" class="dash-card-link">View All →</a>
             </div>
         </div>
     </div>
     <div class="col-md-3 mb-3">
-        <div class="card bg-warning text-white h-100">
+        <div class="card dash-card dash-card-lowstock h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="card-title">Low Stock</h6>
                         <h2 class="mb-0">@Model.LowStockProducts</h2>
                     </div>
-                    <i class="bi bi-exclamation-triangle fs-1"></i>
+                    <i class="bi bi-exclamation-triangle fs-1 dash-card-icon"></i>
                 </div>
-                <a asp-controller="Products" asp-action="LowStock" class="text-white text-decoration-none">View Alerts →</a>
+                <a asp-controller="Products" asp-action="LowStock" class="dash-card-link">View Alerts →</a>
             </div>
         </div>
     </div>
     <div class="col-md-3 mb-3">
-        <div class="card bg-success text-white h-100">
+        <div class="card dash-card dash-card-sales h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="card-title">Today's Sales</h6>
                         <h2 class="mb-0">@Model.TodaySales</h2>
                     </div>
-                    <i class="bi bi-cart-check fs-1"></i>
+                    <i class="bi bi-cart-check fs-1 dash-card-icon"></i>
                 </div>
-                <span class="text-white">Revenue: $@Model.TodayRevenue.ToString("N2")</span>
+                <span class="dash-card-link">Revenue: $@Model.TodayRevenue.ToString("N2")</span>
             </div>
         </div>
     </div>
     <div class="col-md-3 mb-3">
-        <div class="card bg-info text-white h-100">
+        <div class="card dash-card dash-card-alerts h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="card-title">Alerts</h6>
                         <h2 class="mb-0">@Model.PendingNotifications</h2>
                     </div>
-                    <i class="bi bi-bell fs-1"></i>
+                    <i class="bi bi-bell fs-1 dash-card-icon"></i>
                 </div>
-                <span class="text-white">Pending notifications</span>
+                <span class="dash-card-link">Pending notifications</span>
             </div>
         </div>
     </div>
@@ -174,9 +174,7 @@
                                     <tr>
                                         <td>@(alert.Product?.Name ?? "N/A")</td>
                                         <td>@(alert.Product?.SKU ?? "N/A")</td>
-                                        <td class="@(alert.CurrentQuantity == 0 ? "text-danger" : "text-warning") fw-bold">
-                                            @alert.CurrentQuantity
-                                        </td>
+                                        <td class="@(alert.CurrentQuantity == 0 ? "text-danger" : "text-warning") fw-bold">@alert.CurrentQuantity</td>
                                         <td>@alert.MinimumStockLevel</td>
                                         <td>
                                             @if (alert.CurrentQuantity == 0)
@@ -205,7 +203,6 @@
     </div>
 </div>
 
-<!-- Top Products Row -->
 @if (Model.TopSellingProducts != null && Model.TopSellingProducts.Any())
 {
     <div class="row mt-3">
@@ -245,98 +242,103 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        function getChartColors() {
+        var isDark = document.getElementById('htmlRoot')?.getAttribute('data-theme') === 'dark';
+        return {
+        line: isDark ? '#818CF8' : '#4F46E5',
+        lineBg: isDark ? 'rgba(129, 140, 248, 0.15)' : 'rgba(79, 70, 229, 0.1)',
+        gridColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+        textColor: isDark ? '#CBD5E1' : '#475569',
+        doughnut: isDark ? ['#818CF8', '#F87171', '#34D399', '#FBBF24', '#60A5FA', '#C084FC'] : ['#4F46E5', '#EF4444', '#10B981', '#F59E0B', '#3B82F6', '#8B5CF6']
+        };
+        }
+
         $(document).ready(function() {
-            // Sales Trend Chart
-            var salesCtx = document.getElementById('salesTrendChart');
-            if (salesCtx) {
-                @{
-                        var salesLabels = new List<string>();
-                        var salesValues = new List<decimal>();
+        var colors = getChartColors();
 
-                        if (Model.SalesTrend != null)
-                        {
-                                foreach (var item in Model.SalesTrend)
-                                {
-                                        salesLabels.Add($"\"{item.Label}\"");
-                                        salesValues.Add(item.Value);
-                                }
-                        }
+        var salesCtx = document.getElementById('salesTrendChart');
+        if (salesCtx) {
+        @{
+            var salesLabels = new List<string>();
+            var salesValues = new List<decimal>();
+            if (Model.SalesTrend != null)
+            {
+                foreach (var item in Model.SalesTrend)
+                {
+                    salesLabels.Add($"\"{item.Label}\"");
+                    salesValues.Add(item.Value);
                 }
-
-                var salesData = {
-                    labels: [@Html.Raw(string.Join(",", salesLabels))],
-                    values: [@string.Join(",", salesValues.Select(v => v.ToString("F2")))]
-                };
-
-                new Chart(salesCtx, {
-                    type: 'line',
-                    data: {
-                        labels: salesData.labels,
-                        datasets: [{
-                            label: 'Sales ($)',
-                            data: salesData.values,
-                            borderColor: 'rgb(75, 192, 192)',
-                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                            tension: 0.1,
-                            fill: true
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false
-                    }
-                });
             }
+        }
+        var salesData = {
+        labels: [@Html.Raw(string.Join(",", salesLabels))],
+        values: [@string.Join(",", salesValues.Select(v => v.ToString("F2")))]
+        };
+        new Chart(salesCtx, {
+        type: 'line',
+        data: {
+        labels: salesData.labels,
+        datasets: [{
+        label: 'Sales ($)',
+        data: salesData.values,
+        borderColor: colors.line,
+        backgroundColor: colors.lineBg,
+        tension: 0.4,
+        fill: true,
+        borderWidth: 2,
+        pointBackgroundColor: colors.line,
+        pointRadius: 4
+        }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+        x: { grid: { color: colors.gridColor }, ticks: { color: colors.textColor } },
+        y: { grid: { color: colors.gridColor }, ticks: { color: colors.textColor } }
+        },
+        plugins: { legend: { labels: { color: colors.textColor } } }
+        }
+        });
+        }
 
-            // Category Distribution Chart
-            var categoryCtx = document.getElementById('categoryChart');
-            if (categoryCtx) {
-                @{
-                        var categoryLabels = new List<string>();
-                        var categoryValues = new List<int>();
-
-                        if (Model.CategoryDistribution != null)
-                        {
-                                foreach (var item in Model.CategoryDistribution)
-                                {
-                                        categoryLabels.Add($"\"{item.CategoryName}\"");
-                                        categoryValues.Add(item.ProductCount);
-                                }
-                        }
+        var categoryCtx = document.getElementById('categoryChart');
+        if (categoryCtx) {
+        @{
+            var categoryLabels = new List<string>();
+            var categoryValues = new List<int>();
+            if (Model.CategoryDistribution != null)
+            {
+                foreach (var item in Model.CategoryDistribution)
+                {
+                    categoryLabels.Add($"\"{item.CategoryName}\"");
+                    categoryValues.Add(item.ProductCount);
                 }
-
-                var categoryData = {
-                    labels: [@Html.Raw(string.Join(",", categoryLabels))],
-                    values: [@string.Join(",", categoryValues)]
-                };
-
-                new Chart(categoryCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: categoryData.labels,
-                        datasets: [{
-                            data: categoryData.values,
-                            backgroundColor: [
-                                'rgb(255, 99, 132)',
-                                'rgb(54, 162, 235)',
-                                'rgb(255, 205, 86)',
-                                'rgb(75, 192, 192)',
-                                'rgb(153, 102, 255)',
-                                'rgb(255, 159, 64)'
-                            ]
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom'
-                            }
-                        }
-                    }
-                });
             }
+        }
+        var categoryData = {
+        labels: [@Html.Raw(string.Join(",", categoryLabels))],
+        values: [@string.Join(",", categoryValues)]
+        };
+        new Chart(categoryCtx, {
+        type: 'doughnut',
+        data: {
+        labels: categoryData.labels,
+        datasets: [{
+        data: categoryData.values,
+        backgroundColor: colors.doughnut,
+        borderWidth: 0
+        }]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+        legend: { position: 'bottom', labels: { color: colors.textColor } }
+        }
+        }
+        });
+        }
         });
     </script>
 }

@@ -1,0 +1,139 @@
+@model StockMaster.Models.Product
+@{
+    ViewData["Title"] = "Product Details";
+    var inventoryLogs = ViewBag.InventoryLogs as IEnumerable<StockMaster.Models.InventoryLog>;
+    var currentUser = ViewBag.CurrentUser as StockMaster.Models.User;
+}
+
+<div class="row mb-4">
+    <div class="col">
+        <h2><i class="bi bi-info-circle"></i> @Model.Name Details</h2>
+    </div>
+    <div class="col-auto">
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to List
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-tag"></i> Product Information</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-4">SKU</dt>
+                    <dd class="col-sm-8">@Model.SKU</dd>
+
+                    <dt class="col-sm-4">Barcode</dt>
+                    <dd class="col-sm-8">@(Model.Barcode ?? "N/A")</dd>
+
+                    <dt class="col-sm-4">Category</dt>
+                    <dd class="col-sm-8">@Model.Category?.Name</dd>
+
+                    <dt class="col-sm-4">Description</dt>
+                    <dd class="col-sm-8">@(Model.Description ?? "N/A")</dd>
+                </dl>
+                
+                <hr />
+                
+                <dl class="row">
+                    <dt class="col-sm-4">Price</dt>
+                    <dd class="col-sm-8">$@Model.Price.ToString("N2")</dd>
+
+                    <dt class="col-sm-4">Cost</dt>
+                    <dd class="col-sm-8">$@Model.Cost.ToString("N2")</dd>
+
+                    <dt class="col-sm-4">Profit Margin</dt>
+                    <dd class="col-sm-8 text-success">
+                        @if(Model.Price > 0)
+                        {
+                            <span>@(((Model.Price - Model.Cost) / Model.Price * 100).ToString("N2"))%</span>
+                        }
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-box-seam"></i> Inventory Data</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-5">Quantity in Stock</dt>
+                    <dd class="col-sm-7 fw-bold fs-5 @(Model.QuantityInStock <= Model.MinimumStockLevel ? "text-danger" : "text-success")">
+                        @Model.QuantityInStock @Model.UnitOfMeasure
+                        @if (Model.QuantityInStock <= Model.MinimumStockLevel)
+                        {
+                            <i class="bi bi-exclamation-triangle-fill text-warning ms-2" title="Low Stock"></i>
+                        }
+                    </dd>
+
+                    <dt class="col-sm-5">Minimum Level</dt>
+                    <dd class="col-sm-7">@Model.MinimumStockLevel</dd>
+
+                    <dt class="col-sm-5">Maximum Level</dt>
+                    <dd class="col-sm-7">@Model.MaximumStockLevel</dd>
+
+                    <dt class="col-sm-5">Reorder Point</dt>
+                    <dd class="col-sm-7">@Model.ReorderPoint</dd>
+                    
+                    <dt class="col-sm-5">Weight</dt>
+                    <dd class="col-sm-7">@Model.Weight @Model.WeightUnit</dd>
+
+                    <dt class="col-sm-5">Location</dt>
+                    <dd class="col-sm-7">@(Model.Location ?? "N/A")</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Inventory Activity</h5>
+    </div>
+    <div class="card-body">
+        @if (inventoryLogs != null && inventoryLogs.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-sm">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Action</th>
+                            <th>Quantity</th>
+                            <th>Before</th>
+                            <th>After</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in inventoryLogs.Take(10))
+                        {
+                            <tr>
+                                <td>@log.CreatedAt.ToString("MMM dd, yyyy HH:mm")</td>
+                                <td>@log.Action</td>
+                                <td class="@(log.Action == StockMaster.Models.InventoryAction.StockIn ? "text-success" : (log.Action == StockMaster.Models.InventoryAction.StockOut ? "text-danger" : "")) fw-bold">
+                                    @(log.Action == StockMaster.Models.InventoryAction.StockIn ? "+" : (log.Action == StockMaster.Models.InventoryAction.StockOut ? "-" : ""))@log.Quantity
+                                </td>
+                                <td>@log.PreviousQuantity</td>
+                                <td>@log.NewQuantity</td>
+                                <td>@log.Notes</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <p class="text-muted mb-0">No recent history available for this product.</p>
+        }
+    </div>
+</div>

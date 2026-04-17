@@ -1,4 +1,4 @@
-﻿using StockMaster.Models;
+using StockMaster.Models;
 using StockMaster.ViewModels;
 
 namespace StockMaster.Services
@@ -12,5 +12,6 @@ namespace StockMaster.Services
         User? GetCurrentUser();
         bool IsAuthenticated();
         bool IsInRole(UserRole role);
+        Task<bool> UpdateProfileImageAsync(int userId, string imageUrl);
     }
 }
